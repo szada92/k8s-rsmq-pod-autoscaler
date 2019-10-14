@@ -87,8 +87,8 @@ while true; do
                 if [[ ${downscaleWaitTicksArray[$autoscaler]} -gt 0 ]]; then
                   downscaleWaitTicksArray[$autoscaler]=$((downscaleWaitTicksArray[$autoscaler]-1))
 
-                  echo "$(date) -- Waiting another $downscaleWaitTicks iteration for downscaling $namespace: $deployment to $desiredPods pods ($queueMessages msg in RedisMQ)"
-                  notifySlack "Waiting another $downscaleWaitTicks iteration for downscaling $namespace: $deployment to $desiredPods pods ($queueMessages msg in RedisMQ)"
+                  echo "$(date) -- Waiting another ${downscaleWaitTicksArray[$autoscaler]} iteration for downscaling $namespace: $deployment to $desiredPods pods (unprocessed msgs: $queueMessages; total msgs: $totalQueueMessages)"
+                  notifySlack "Waiting another ${downscaleWaitTicksArray[$autoscaler]} iteration for downscaling $namespace: $deployment to $desiredPods pods (unprocessed msgs: $queueMessages; total msgs: $totalQueueMessages)"
 
                   continue
                 else
