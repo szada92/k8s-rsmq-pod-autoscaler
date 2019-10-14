@@ -15,6 +15,7 @@ This Pod runs in the `kube-system` namespace on k8s master nodes.
 ### Env vars
 
 - `INTERVAL`: Seconds between checks in the pod autoscaling process described above (default 30s)
+- `DOWNSCALE_WAIT_TICKS`: Iterations to wait before starting downscaling
 
 - `REDIS_HOST`: Redis host
 - `REDIS_PORT`: Redis port

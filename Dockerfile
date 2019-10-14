@@ -13,6 +13,7 @@ COPY autoscale.sh /bin/autoscale.sh
 RUN chmod +x /bin/autoscale.sh
 
 ENV INTERVAL 30
+ENV DOWNSCALE_WAIT_TICKS 10
 ENV LOGS HIGH
 
 CMD ["bash", "/bin/autoscale.sh"]

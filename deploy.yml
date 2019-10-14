@@ -56,12 +56,12 @@ spec:
           env:
             - name: INTERVAL
               value: "10"
+            - name: DOWNSCALE_WAIT_TICKS
+              value: "10"
             - name: REDIS_HOST
               value: "127.0.0.1"
             - name: REDIS_PORT
               value: "6379"
-            - name: REDIS_QUEUE_NAME
-              value: "rsmq"
             - name: REDIS_PASSWORD
               valueFrom:
                 secretKeyRef:

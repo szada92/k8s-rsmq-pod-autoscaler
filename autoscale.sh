@@ -31,6 +31,11 @@ function notifySlack() {
 autoscalingNoWS=$(echo "$AUTOSCALING" | tr -d "[:space:]")
 IFS=';' read -ra autoscalingArr <<< "$autoscalingNoWS"
 
+declare -A downscaleWaitTicksArray
+for autoscaler in "${autoscalingArr[@]}"; do
+  downscaleWaitTicksArray[$autoscaler]=$DOWNSCALE_WAIT_TICKS
+done
+
 while true; do
   for autoscaler in "${autoscalingArr[@]}"; do
     IFS='|' read minPods maxPods mesgPerPod namespace deployment queueName <<< "$autoscaler"
@@ -78,7 +83,21 @@ while true; do
             if [[ $scale -eq 0 ]]; then
               # To slow down the scale-down policy, scale down in steps (reduce 10% on every iteration)
               if [[ $desiredPods -lt $currentPods ]]; then
+
+                if [[ ${downscaleWaitTicksArray[$autoscaler]} -gt 0 ]]; then
+                  downscaleWaitTicksArray[$autoscaler]=$((downscaleWaitTicksArray[$autoscaler]-1))
+
+                  echo "$(date) -- Waiting another $downscaleWaitTicks iteration for downscaling $namespace: $deployment to $desiredPods pods ($queueMessages msg in RedisMQ)"
+                  notifySlack "Waiting another $downscaleWaitTicks iteration for downscaling $namespace: $deployment to $desiredPods pods ($queueMessages msg in RedisMQ)"
+
+                  continue
+                else
+                  downscaleWaitTicksArray[$autoscaler]=$DOWNSCALE_WAIT_TICKS
+                fi
+
                 desiredPods=$(awk "BEGIN { print int( ($currentPods - $desiredPods) * 0.9 + $desiredPods ) }")
+              else
+                downscaleWaitTicksArray[$autoscaler]=$DOWNSCALE_WAIT_TICKS
               fi
 
               kubectl scale -n $namespace --replicas=$desiredPods deployment/$deployment 1> /dev/null
