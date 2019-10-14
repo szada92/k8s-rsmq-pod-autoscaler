@@ -2,7 +2,7 @@
 apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: ClusterRole
 metadata:
-  name: rabbit-pod-autoscaler
+  name: redis-pod-autoscaler
 rules:
   - apiGroups: ["*"]
     resources: ["deployments", "deployments/scale"]
@@ -11,43 +11,43 @@ rules:
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: rabbit-pod-autoscaler
+  name: redis-pod-autoscaler
   namespace: kube-system
 ---
 apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: ClusterRoleBinding
 metadata:
-  name: rabbit-pod-autoscaler
+  name: redis-pod-autoscaler
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: rabbit-pod-autoscaler
+  name: redis-pod-autoscaler
 subjects:
   - kind: ServiceAccount
-    name: rabbit-pod-autoscaler
+    name: redis-pod-autoscaler
     namespace: kube-system
 ---
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
-  name: rabbit-pod-autoscaler
+  name: redis-pod-autoscaler
   namespace: kube-system
 spec:
   replicas: 1
   template:
     metadata:
       labels:
-        app: rabbit-pod-autoscaler
+        app: redis-pod-autoscaler
     spec:
       nodeSelector:
         kubernetes.io/role: master
       tolerations:
         - effect: NoSchedule
           key: node-role.kubernetes.io/master
-      serviceAccountName: rabbit-pod-autoscaler
+      serviceAccountName: redis-pod-autoscaler
       containers:
-        - name: rabbit-pod-autoscaler
-          image: onfido/k8s-rabbit-pod-autoscaler
+        - name: redis-pod-autoscaler
+          image: onfido/k8s-redis-pod-autoscaler
           imagePullPolicy: Always
           resources:
             requests:
@@ -55,23 +55,22 @@ spec:
               memory: 50Mi
           env:
             - name: INTERVAL
-              value: "30"
-            - name: RABBIT_HOST
-              value: "http://rabbitmq.example.com"
-            - name: RABBIT_USER
+              value: "10"
+            - name: REDIS_HOST
+              value: "127.0.0.1"
+            - name: REDIS_PORT
+              value: "6379"
+            - name: REDIS_QUEUE_NAME
+              value: "rsmq"
+            - name: REDIS_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: rabbit-pod-autoscaler
-                  key: rabbit-user
-            - name: RABBIT_PASS
-              valueFrom:
-                secretKeyRef:
-                  name: rabbit-pod-autoscaler
-                  key: rabbit-pass
+                  name: redis-pod-autoscaler
+                  key: redis-pass
             - name: AUTOSCALING
               value: >
-                3|10|5|development|example|example.queue;
-                3|5|3|development|example2|example2.queue
+                1|10|1|default|deployment-name|queue-name;
+                3|5|3|default|deployment-2-name|queue-2-name
             - name: LOGS
               value: HIGH
             - name: SLACK_HOOK
