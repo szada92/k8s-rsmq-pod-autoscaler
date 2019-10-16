@@ -49,7 +49,7 @@ while true; do
     if [[ $? -eq 0 ]]; then
       totalQueueMessages=$(echo $queueMessagesJson | jq '.msgs')
       hiddenQueueMessages=$(echo $queueMessagesJson | jq '.hiddenmsgs')
-      queueMessages=$((totalQueueMessages-hiddenQueueMessages))
+      queueMessages=${totalQueueMessages}
 
       requiredPods=$(echo "$queueMessages/$mesgPerPod" | bc 2> /dev/null)
 
@@ -83,19 +83,18 @@ while true; do
             if [[ $scale -eq 0 ]]; then
               # To slow down the scale-down policy, scale down in steps (reduce 10% on every iteration)
               if [[ $desiredPods -lt $currentPods ]]; then
+                desiredPods=$(awk "BEGIN { print int( ($currentPods - $desiredPods) * 0.9 + $desiredPods ) }")
 
                 if [[ ${downscaleWaitTicksArray[$autoscaler]} -gt 0 ]]; then
                   downscaleWaitTicksArray[$autoscaler]=$((downscaleWaitTicksArray[$autoscaler]-1))
 
-                  echo "$(date) -- Waiting another ${downscaleWaitTicksArray[$autoscaler]} iteration for downscaling $namespace: $deployment to $desiredPods pods (unprocessed msgs: $queueMessages; total msgs: $totalQueueMessages)"
-                  notifySlack "Waiting another ${downscaleWaitTicksArray[$autoscaler]} iteration for downscaling $namespace: $deployment to $desiredPods pods (unprocessed msgs: $queueMessages; total msgs: $totalQueueMessages)"
+                  echo "$(date) -- Waiting another ${downscaleWaitTicksArray[$autoscaler]} iteration for downscaling $namespace: $deployment to $desiredPods pods (hidden msgs: $hiddenQueueMessages; total msgs: $totalQueueMessages)"
+                  notifySlack "Waiting another ${downscaleWaitTicksArray[$autoscaler]} iteration for downscaling $namespace: $deployment to $desiredPods pods (hidden msgs: $hiddenQueueMessages; total msgs: $totalQueueMessages)"
 
                   continue
                 else
                   downscaleWaitTicksArray[$autoscaler]=$DOWNSCALE_WAIT_TICKS
                 fi
-
-                desiredPods=$(awk "BEGIN { print int( ($currentPods - $desiredPods) * 0.9 + $desiredPods ) }")
               else
                 downscaleWaitTicksArray[$autoscaler]=$DOWNSCALE_WAIT_TICKS
               fi
@@ -136,6 +135,8 @@ while true; do
     else
       echo "$(date) -- Failed to get queue messages from $REDIS_HOST for $namespace: $deployment."
       notifySlack "Failed to get queue messages from $REDIS_HOST for $namespace: $deployment."
+
+      exit 1
     fi
   done
 
